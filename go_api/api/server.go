@@ -5,17 +5,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jaredmyers/apifun/go_api/storage"
+	"github.com/jaredmyers/apifun/go_api/services"
 )
 
 type Server struct {
 	listenAddr  string
-	userService *storage.UserService
+	userService services.UserServicer
 }
 
-func NewServer(listenAddr string, userService *storage.UserService) *Server {
+func NewServer(listenAddr string, userService services.UserServicer) *Server {
 	return &Server{
 		listenAddr:  listenAddr,
 		userService: userService,
@@ -62,8 +63,11 @@ func (s *Server) handleUserId(w http.ResponseWriter, r *http.Request) error {
 // ---- tester
 func (s *Server) handleGetUsers(w http.ResponseWriter, r *http.Request) error {
 	log.Println("running handleUserGet")
-	s.userService.Store.GetUsers()
-	return nil
+	users, err := s.userService.GetUsers()
+	if err != nil {
+		return err
+	}
+	return WriteJson(w, r, http.StatusOK, users)
 }
 
 // ----
@@ -75,7 +79,22 @@ func (s *Server) handleUserPost(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 func (s *Server) handleUserIdGet(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	log.Println("FROM handleUserIdGet")
+
+	userSuppliedID := chi.URLParam(r, "id")
+	userID, err := strconv.Atoi(userSuppliedID)
+	if err != nil {
+		return fmt.Errorf("invalid url")
+	}
+
+	log.Println(userID)
+	/*
+		//resp, err := s.userService.GetUser(userID)
+		if err != nil {
+			return err
+		}
+	*/
+	return WriteJson(w, r, http.StatusOK, userID)
 }
 func (s *Server) handleUserIdPut(w http.ResponseWriter, r *http.Request) error {
 	return nil
@@ -105,7 +124,5 @@ func makeHandleFunc(f apiFunc) http.HandlerFunc {
 		if err := f(w, r); err != nil {
 			WriteJson(w, r, http.StatusBadRequest, ApiError{err.Error()})
 		}
-
 	}
-
 }

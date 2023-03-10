@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/jaredmyers/apifun/go_api/api"
+	"github.com/jaredmyers/apifun/go_api/services"
 	"github.com/jaredmyers/apifun/go_api/storage"
 )
 
@@ -17,8 +18,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	userService := storage.NewUserService(store)
-
+	userService := services.NewUserService(store)
 	server := api.NewServer(*listenAddr, userService)
 	server.Run()
 }
