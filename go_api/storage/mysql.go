@@ -3,24 +3,28 @@ package storage
 import (
 	"database/sql"
 	"log"
+	"os"
 
+	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jaredmyers/apifun/go_api/models"
 )
 
-type MySqlStore struct {
+type SqlStore struct {
 	db *sql.DB
 }
 
 func NewMySqlStore() (UserServiceStorer, error) {
 
-	/*
-		cfg := mysql.Config{
+	cfg := mysql.Config{
+		User:   os.Getenv("MYSQL_USER"),
+		Passwd: os.Getenv("MYSQL_PASS"),
+		Net:    "tcp",
+		Addr:   "127.0.0.1:3306",
+		DBName: "testdb",
+	}
+	db, err := sql.Open("mysql", cfg.FormatDSN())
 
-		}
-	*/
-
-	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:3306)/testdb")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -31,29 +35,33 @@ func NewMySqlStore() (UserServiceStorer, error) {
 		log.Println("no ping error....")
 	}
 
-	return &MySqlStore{
+	return &SqlStore{
 		db: db,
 	}, nil
 }
 
-func (ms *MySqlStore) CreateUser(*models.User) error {
-	return nil
-}
-func (ms *MySqlStore) GetUser(*string) (*models.User, error) {
+func NewPostgresStore() (UserServiceStorer, error) {
 	return nil, nil
 }
-func (ms *MySqlStore) UpdateUser(*models.User) error {
+
+func (sql *SqlStore) CreateUser(*models.User) error {
 	return nil
 }
-func (ms *MySqlStore) DeleteUser(*string) error {
+func (sql *SqlStore) GetUser(*string) (*models.User, error) {
+	return nil, nil
+}
+func (sql *SqlStore) UpdateUser(*models.User) error {
 	return nil
 }
-func (ms *MySqlStore) GetUsers() ([]*models.User, error) {
+func (sql *SqlStore) DeleteUser(*string) error {
+	return nil
+}
+func (sql *SqlStore) GetUsers() ([]*models.User, error) {
 	log.Println("running GetUsers from MySqlStore through UserServiceStorer")
 
 	var users []*models.User
 
-	rows, err := ms.db.Query("select * from users")
+	rows, err := sql.db.Query("select * from users")
 	log.Println(rows)
 	if err != nil {
 		log.Println("returning error")

@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -42,9 +41,10 @@ func (s *Server) handleUser(w http.ResponseWriter, r *http.Request) error {
 	case "POST":
 		return s.handleUserPost(w, r)
 	default:
-
+		// may return nil here instead
+		statusCode := http.StatusMethodNotAllowed
+		return ErrParams{StatusCode: statusCode, StatusText: http.StatusText(statusCode)}
 	}
-	return WriteJson(w, r, http.StatusMethodNotAllowed, ApiError{Error: fmt.Errorf("not allowed").Error()})
 }
 func (s *Server) handleUserId(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
@@ -55,14 +55,15 @@ func (s *Server) handleUserId(w http.ResponseWriter, r *http.Request) error {
 	case "DELETE":
 		return s.handleUserIdDelete(w, r)
 	default:
-
+		// may return nil here instead
+		statusCode := http.StatusMethodNotAllowed
+		return ErrParams{StatusCode: statusCode, StatusText: http.StatusText(statusCode)}
 	}
-	return WriteJson(w, r, http.StatusMethodNotAllowed, ApiError{Error: fmt.Errorf("not allowed").Error()})
 }
 
 // ---- tester
 func (s *Server) handleGetUsers(w http.ResponseWriter, r *http.Request) error {
-	log.Println("running handleUserGet")
+	log.Println("running handleGetUsers")
 	users, err := s.userService.GetUsers()
 	if err != nil {
 		return err
@@ -103,7 +104,7 @@ func (s *Server) handleUserIdDelete(w http.ResponseWriter, r *http.Request) erro
 	return nil
 }
 
-// ----
+// ---- Utility ----
 
 func WriteJson(w http.ResponseWriter, r *http.Request, status int, v any) error {
 
@@ -139,9 +140,10 @@ func errorHandler(f apiFunc) http.HandlerFunc {
 			errParams, ok := err.(ErrParams)
 			if ok {
 				WriteJson(w, r, errParams.StatusCode, ApiError{errParams})
+			} else {
+				// placeholder, may remove entirely
+				WriteJson(w, r, http.StatusBadRequest, ApiPlainError{err.Error()})
 			}
-
-			WriteJson(w, r, http.StatusBadRequest, ApiPlainError{err.Error()})
 		}
 	}
 }
