@@ -26,9 +26,9 @@ func NewServer(listenAddr string, userService services.UserServicer) *Server {
 func (s *Server) Run() {
 	router := chi.NewRouter()
 
-	router.HandleFunc("/users", makeHandleFunc(s.handleGetUsers))
-	router.HandleFunc("/user", makeHandleFunc(s.handleUser))
-	router.HandleFunc("/user/{id}", makeHandleFunc(s.handleUserId))
+	router.HandleFunc("/users", errorHandler(s.handleGetUsers))
+	router.HandleFunc("/user", errorHandler(s.handleUser))
+	router.HandleFunc("/user/{id}", errorHandler(s.handleUserId))
 
 	log.Println("API Server running on port:", s.listenAddr)
 	http.ListenAndServe(s.listenAddr, router)
@@ -84,7 +84,7 @@ func (s *Server) handleUserIdGet(w http.ResponseWriter, r *http.Request) error {
 	userSuppliedID := chi.URLParam(r, "id")
 	userID, err := strconv.Atoi(userSuppliedID)
 	if err != nil {
-		return fmt.Errorf("invalid url")
+		return ErrParams{StatusCode: http.StatusBadRequest, StatusText: "Bad Request"}
 	}
 
 	log.Println(userID)
@@ -115,14 +115,33 @@ func WriteJson(w http.ResponseWriter, r *http.Request, status int, v any) error 
 
 type apiFunc func(http.ResponseWriter, *http.Request) error
 
-type ApiError struct {
+type ApiPlainError struct {
 	Error string `json:"error"`
 }
 
-func makeHandleFunc(f apiFunc) http.HandlerFunc {
+type ApiError struct {
+	Ep ErrParams `json:"error"`
+}
+
+type ErrParams struct {
+	StatusCode int    `json:"code"`
+	StatusText string `json:"message"`
+}
+
+func (e ErrParams) Error() string {
+	return e.StatusText
+}
+
+func errorHandler(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := f(w, r); err != nil {
-			WriteJson(w, r, http.StatusBadRequest, ApiError{err.Error()})
+
+			errParams, ok := err.(ErrParams)
+			if ok {
+				WriteJson(w, r, errParams.StatusCode, ApiError{errParams})
+			}
+
+			WriteJson(w, r, http.StatusBadRequest, ApiPlainError{err.Error()})
 		}
 	}
 }
