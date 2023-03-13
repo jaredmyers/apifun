@@ -12,6 +12,7 @@ import (
 
 type Server struct {
 	listenAddr  string
+	router      *chi.Mux
 	userService services.UserServicer
 }
 
@@ -22,15 +23,18 @@ func NewServer(listenAddr string, userService services.UserServicer) *Server {
 	}
 }
 
+func (s *Server) Register() {
+	s.router = chi.NewRouter()
+
+	s.router.HandleFunc("/users", errorHandler(s.handleGetUsers))
+	s.router.HandleFunc("/user", errorHandler(s.handleUser))
+	s.router.HandleFunc("/user/{id}", errorHandler(s.handleUserId))
+
+}
+
 func (s *Server) Run() {
-	router := chi.NewRouter()
-
-	router.HandleFunc("/users", errorHandler(s.handleGetUsers))
-	router.HandleFunc("/user", errorHandler(s.handleUser))
-	router.HandleFunc("/user/{id}", errorHandler(s.handleUserId))
-
 	log.Println("API Server running on port:", s.listenAddr)
-	http.ListenAndServe(s.listenAddr, router)
+	http.ListenAndServe(s.listenAddr, s.router)
 }
 
 // -- Route method switches

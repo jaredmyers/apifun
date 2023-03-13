@@ -5,7 +5,11 @@ type User struct {
 	Username  string  `json:"username"`
 	Pw        string  `json:"pw"`
 	CreatedOn string  `json:"createdon"`
-	DeletedOn *string `json:"deletedon"`
+	DeletedOn *string `json:"deletedon,omitempty"`
+}
+
+type GetUsersResponse struct {
+	Users []*User `json:"users"`
 }
 
 type getUserRequest int

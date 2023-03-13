@@ -62,7 +62,6 @@ func (sql *SqlStore) GetUsers() ([]*models.User, error) {
 	var users []*models.User
 
 	rows, err := sql.db.Query("select * from users")
-	log.Println(rows)
 	if err != nil {
 		log.Println("returning error")
 		log.Println(err)
