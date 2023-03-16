@@ -1,4 +1,3 @@
-* OpenAPI
 * JWT
 * Prometheus, Grafana
 * bcrypt salt/hash
