@@ -12,7 +12,7 @@ import (
 
 type Server struct {
 	listenAddr  string
-	router      *chi.Mux
+	Router      *chi.Mux
 	userService services.UserServicer
 }
 
@@ -23,18 +23,18 @@ func NewServer(listenAddr string, userService services.UserServicer) *Server {
 	}
 }
 
-func (s *Server) Register() {
-	s.router = chi.NewRouter()
+func (s *Server) RegisterRoutes() {
+	s.Router = chi.NewRouter()
 
-	s.router.HandleFunc("/users", errorHandler(s.handleGetUsers))
-	s.router.HandleFunc("/user", errorHandler(s.handleUser))
-	s.router.HandleFunc("/user/{id}", errorHandler(s.handleUserId))
+	s.Router.HandleFunc("/users", errorHandler(s.handleGetUsers))
+	s.Router.HandleFunc("/user", errorHandler(s.handleUser))
+	s.Router.HandleFunc("/user/{id}", errorHandler(s.handleUserId))
 
 }
 
 func (s *Server) Run() {
 	log.Println("API Server running on port:", s.listenAddr)
-	http.ListenAndServe(s.listenAddr, s.router)
+	http.ListenAndServe(s.listenAddr, s.Router)
 }
 
 // -- Route method switches
@@ -65,8 +65,13 @@ func (s *Server) handleUserId(w http.ResponseWriter, r *http.Request) error {
 	}
 }
 
-// ---- tester
+// ---- tester -----
 func (s *Server) handleGetUsers(w http.ResponseWriter, r *http.Request) error {
+
+	if r.Method != http.MethodGet {
+		return ErrParams{StatusCode: http.StatusMethodNotAllowed, StatusText: "Method Not Allowed"}
+	}
+
 	log.Println("running handleGetUsers")
 	users, err := s.userService.GetUsers()
 	if err != nil {

@@ -20,6 +20,6 @@ func main() {
 
 	userService := services.NewUserService(store)
 	server := api.NewServer(*listenAddr, userService)
-	server.Register()
+	server.RegisterRoutes()
 	server.Run()
 }
