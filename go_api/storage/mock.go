@@ -13,13 +13,13 @@ func NewMockStore() (UserServiceStorer, error) {
 func (m *MockStore) CreateUser(*models.User) error {
 	return nil
 }
-func (m *MockStore) GetUser(*string) (*models.User, error) {
+func (m *MockStore) GetUser(id int) (*models.User, error) {
 	return nil, nil
 }
 func (m *MockStore) UpdateUser(*models.User) error {
 	return nil
 }
-func (m *MockStore) DeleteUser(*string) error {
+func (m *MockStore) DeleteUser(id int) error {
 	return nil
 }
 func (m *MockStore) GetUsers() ([]*models.User, error) {

@@ -1,8 +1,6 @@
 package services
 
 import (
-	"log"
-
 	"github.com/jaredmyers/apifun/go_api/models"
 	"github.com/jaredmyers/apifun/go_api/storage"
 )
@@ -20,9 +18,14 @@ func NewUserService(store storage.UserServiceStorer) UserServicer {
 func (uc *UserService) CreateUser(*models.User) error {
 	return nil
 }
-func (uc *UserService) GetUser(int) (*models.User, error) {
+func (uc *UserService) GetUser(id int) (*models.User, error) {
 
-	return nil, nil
+	user, err := uc.store.GetUser(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 func (uc *UserService) UpdateUser(*models.User) error {
 	return nil
@@ -35,7 +38,5 @@ func (uc *UserService) GetUsers() ([]*models.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println("from UserService GetUsers")
-	log.Println(users)
 	return users, nil
 }

@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jaredmyers/apifun/go_api/models"
 	"github.com/jaredmyers/apifun/go_api/services"
 )
 
@@ -19,17 +20,16 @@ type Server struct {
 func NewServer(listenAddr string, userService services.UserServicer) *Server {
 	return &Server{
 		listenAddr:  listenAddr,
+		Router:      chi.NewRouter(),
 		userService: userService,
 	}
 }
 
+// Register connects handlers to router
 func (s *Server) RegisterRoutes() {
-	s.Router = chi.NewRouter()
-
 	s.Router.HandleFunc("/users", errorHandler(s.handleGetUsers))
 	s.Router.HandleFunc("/user", errorHandler(s.handleUser))
-	s.Router.HandleFunc("/user/{id}", errorHandler(s.handleUserId))
-
+	s.Router.HandleFunc("/user/{id}", errorHandler(s.handleUserById))
 }
 
 func (s *Server) Run() {
@@ -41,23 +41,23 @@ func (s *Server) Run() {
 func (s *Server) handleUser(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
-		return s.handleUserGet(w, r)
+		return s.getUser(w, r)
 	case "POST":
-		return s.handleUserPost(w, r)
+		return s.postUser(w, r)
 	default:
 		// may return nil here instead
 		statusCode := http.StatusMethodNotAllowed
 		return ErrParams{StatusCode: statusCode, StatusText: http.StatusText(statusCode)}
 	}
 }
-func (s *Server) handleUserId(w http.ResponseWriter, r *http.Request) error {
+func (s *Server) handleUserById(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
-		return s.handleUserIdGet(w, r)
+		return s.getUserById(w, r)
 	case "PUT":
-		return s.handleUserIdPut(w, r)
+		return s.putUserById(w, r)
 	case "DELETE":
-		return s.handleUserIdDelete(w, r)
+		return s.deleteUserById(w, r)
 	default:
 		// may return nil here instead
 		statusCode := http.StatusMethodNotAllowed
@@ -72,44 +72,42 @@ func (s *Server) handleGetUsers(w http.ResponseWriter, r *http.Request) error {
 		return ErrParams{StatusCode: http.StatusMethodNotAllowed, StatusText: "Method Not Allowed"}
 	}
 
-	log.Println("running handleGetUsers")
 	users, err := s.userService.GetUsers()
 	if err != nil {
 		return err
 	}
-	return WriteJson(w, r, http.StatusOK, users)
+	return WriteJson(w, r, http.StatusOK, &models.GetUsersResponse{Users: users})
 }
 
 // ----
 
-func (s *Server) handleUserGet(w http.ResponseWriter, r *http.Request) error {
+func (s *Server) getUser(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
-func (s *Server) handleUserPost(w http.ResponseWriter, r *http.Request) error {
+func (s *Server) postUser(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
-func (s *Server) handleUserIdGet(w http.ResponseWriter, r *http.Request) error {
+func (s *Server) getUserById(w http.ResponseWriter, r *http.Request) error {
 	log.Println("FROM handleUserIdGet")
 
 	userSuppliedID := chi.URLParam(r, "id")
 	userID, err := strconv.Atoi(userSuppliedID)
 	if err != nil {
-		return ErrParams{StatusCode: http.StatusBadRequest, StatusText: "Bad Request"}
+		sC := http.StatusBadRequest
+		return ErrParams{StatusCode: sC, StatusText: http.StatusText(sC)}
 	}
 
 	log.Println(userID)
-	/*
-		//resp, err := s.userService.GetUser(userID)
-		if err != nil {
-			return err
-		}
-	*/
-	return WriteJson(w, r, http.StatusOK, userID)
+	res, err := s.userService.GetUser(userID)
+	if err != nil {
+		return err
+	}
+	return WriteJson(w, r, http.StatusOK, res)
 }
-func (s *Server) handleUserIdPut(w http.ResponseWriter, r *http.Request) error {
+func (s *Server) putUserById(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
-func (s *Server) handleUserIdDelete(w http.ResponseWriter, r *http.Request) error {
+func (s *Server) deleteUserById(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
@@ -150,8 +148,12 @@ func errorHandler(f apiFunc) http.HandlerFunc {
 			if ok {
 				WriteJson(w, r, errParams.StatusCode, ApiError{errParams})
 			} else {
-				// placeholder, may remove entirely
-				WriteJson(w, r, http.StatusBadRequest, ApiPlainError{err.Error()})
+				// may change entirely
+				// converts any internal server err to 500
+				// redirects actually err to stdout for now
+				log.Println(err.Error())
+				sC := http.StatusInternalServerError
+				WriteJson(w, r, sC, ApiPlainError{http.StatusText(sC)})
 			}
 		}
 	}

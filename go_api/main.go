@@ -13,7 +13,7 @@ func main() {
 	listenAddr := flag.String("listenAddr", ":8000", "server port")
 	flag.Parse()
 
-	store, err := storage.NewMySqlStore()
+	store, err := storage.NewMySqlStore("testdb")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -22,4 +22,5 @@ func main() {
 	server := api.NewServer(*listenAddr, userService)
 	server.RegisterRoutes()
 	server.Run()
+
 }
