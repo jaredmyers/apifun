@@ -2,13 +2,12 @@ package storage
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"os"
 
 	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jaredmyers/apifun/go_api/models"
+	m "github.com/jaredmyers/apifun/go_api/models"
 )
 
 type SqlStore struct {
@@ -45,49 +44,49 @@ func NewPostgresStore() (UserServiceStorer, error) {
 	return nil, nil
 }
 
-func (s *SqlStore) CreateUser(*models.User) error {
+func (s *SqlStore) CreateUser(*m.User) error {
 	return nil
 }
-func (s *SqlStore) GetUser(id int) (*models.User, error) {
+func (s *SqlStore) GetUser(id int) (*m.User, error) {
 
-	var user models.User
+	var user m.User
 
 	query := "select * from users where id=? and deleted_on is null"
 	row := s.db.QueryRow(query, id)
 
 	if err := row.Scan(&user.Id, &user.Username, &user.Pw, &user.CreatedOn, &user.DeletedOn); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("user id %d does not exist", id)
+			return nil, m.InternalErrResp{Orig: err, InternalCode: m.CodeNotFound}
 		}
-		return nil, err
+		return nil, m.InternalErrResp{Orig: err, InternalCode: m.CodeInternalError}
 	}
 
 	return &user, nil
 }
-func (s *SqlStore) UpdateUser(*models.User) error {
+func (s *SqlStore) UpdateUser(*m.User) error {
 	return nil
 }
 func (s *SqlStore) DeleteUser(id int) error {
 	return nil
 }
-func (s *SqlStore) GetUsers() ([]*models.User, error) {
+func (s *SqlStore) GetUsers() ([]*m.User, error) {
 	log.Println("GetUsers from store...")
 
-	var users []*models.User
+	var users []*m.User
 
 	rows, err := s.db.Query("select * from users where deleted_on is null")
 	if err != nil {
 		log.Println("store error 1")
-		return nil, err
+		return nil, m.InternalErrResp{Orig: err, InternalCode: m.CodeInternalError}
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var user models.User
+		var user m.User
 		err := rows.Scan(&user.Id, &user.Username, &user.Pw, &user.CreatedOn, &user.DeletedOn)
 		if err != nil {
 			log.Println("store error 2")
-			return nil, err
+			return nil, m.InternalErrResp{Orig: err, InternalCode: m.CodeInternalError}
 		}
 		users = append(users, &user)
 	}
@@ -95,7 +94,7 @@ func (s *SqlStore) GetUsers() ([]*models.User, error) {
 	err = rows.Err()
 	if err != nil {
 		log.Println("store error 3")
-		return nil, err
+		return nil, m.InternalErrResp{Orig: err, InternalCode: m.CodeInternalError}
 	}
 
 	return users, nil

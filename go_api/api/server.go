@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jaredmyers/apifun/go_api/models"
+	m "github.com/jaredmyers/apifun/go_api/models"
 	"github.com/jaredmyers/apifun/go_api/services"
 )
 
@@ -46,8 +46,8 @@ func (s *Server) handleUser(w http.ResponseWriter, r *http.Request) error {
 		return s.postUser(w, r)
 	default:
 		// may return nil here instead
-		statusCode := http.StatusMethodNotAllowed
-		return ErrParams{StatusCode: statusCode, StatusText: http.StatusText(statusCode)}
+		sC := http.StatusMethodNotAllowed
+		return ApiErrParams{sC, http.StatusText(sC)}
 	}
 }
 func (s *Server) handleUserById(w http.ResponseWriter, r *http.Request) error {
@@ -60,8 +60,8 @@ func (s *Server) handleUserById(w http.ResponseWriter, r *http.Request) error {
 		return s.deleteUserById(w, r)
 	default:
 		// may return nil here instead
-		statusCode := http.StatusMethodNotAllowed
-		return ErrParams{StatusCode: statusCode, StatusText: http.StatusText(statusCode)}
+		sC := http.StatusMethodNotAllowed
+		return ApiErrParams{sC, http.StatusText(sC)}
 	}
 }
 
@@ -69,14 +69,16 @@ func (s *Server) handleUserById(w http.ResponseWriter, r *http.Request) error {
 func (s *Server) handleGetUsers(w http.ResponseWriter, r *http.Request) error {
 
 	if r.Method != http.MethodGet {
-		return ErrParams{StatusCode: http.StatusMethodNotAllowed, StatusText: "Method Not Allowed"}
+		sC := http.StatusMethodNotAllowed
+		return ApiErrParams{sC, http.StatusText(sC)}
 	}
 
+	// go out to userservice -> db
 	users, err := s.userService.GetUsers()
 	if err != nil {
 		return err
 	}
-	return WriteJson(w, r, http.StatusOK, &models.GetUsersResponse{Users: users})
+	return WriteJson(w, r, http.StatusOK, &m.GetUsersResponse{Users: users})
 }
 
 // ----
@@ -94,15 +96,16 @@ func (s *Server) getUserById(w http.ResponseWriter, r *http.Request) error {
 	userID, err := strconv.Atoi(userSuppliedID)
 	if err != nil {
 		sC := http.StatusBadRequest
-		return ErrParams{StatusCode: sC, StatusText: http.StatusText(sC)}
+		return ApiErrParams{StatusCode: sC, StatusText: http.StatusText(sC)}
 	}
 
 	log.Println(userID)
-	res, err := s.userService.GetUser(userID)
+	resp, err := s.userService.GetUser(userID)
 	if err != nil {
 		return err
 	}
-	return WriteJson(w, r, http.StatusOK, res)
+
+	return WriteJson(w, r, http.StatusOK, resp)
 }
 func (s *Server) putUserById(w http.ResponseWriter, r *http.Request) error {
 	return nil
@@ -117,29 +120,62 @@ func WriteJson(w http.ResponseWriter, r *http.Request, status int, v any) error 
 
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
+
+	// simple log to stdout serverside for now
 	log.Println(r.URL, r.Method, status)
+
 	return json.NewEncoder(w).Encode(v)
 }
 
 type apiFunc func(http.ResponseWriter, *http.Request) error
 
-type ApiPlainError struct {
-	Error string `json:"error"`
-}
-
 type ApiError struct {
-	Ep ErrParams `json:"error"`
+	Ep ApiErrParams `json:"error"`
 }
 
-type ErrParams struct {
+type ApiErrParams struct {
 	StatusCode int    `json:"code"`
 	StatusText string `json:"message"`
 }
 
-func (e ErrParams) Error() string {
+func (e ApiErrParams) Error() string {
 	return e.StatusText
 }
 
+func errorHandler(f apiFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := f(w, r); err != nil {
+
+			// errors which originated within the api package layer
+			errParams, ok := err.(ApiErrParams)
+			if ok {
+				WriteJson(w, r, errParams.StatusCode, ApiError{errParams})
+				return
+			}
+
+			// in the case of an error at the service or storage layer
+			// differentiate between a real internal error and a bad request
+			errorResp, ok := err.(m.InternalErrResp)
+			if ok {
+				log.Println(err.Error())
+				sC := http.StatusInternalServerError
+				switch errorResp.Code() {
+				case m.CodeNotFound:
+					sC = http.StatusNotFound
+				case m.CodeInternalError:
+					sC = http.StatusInternalServerError
+				}
+
+				//WriteJson(w, r, sC, ApiPlainError{http.StatusText(sC)})
+				errParams := ApiErrParams{sC, http.StatusText(sC)}
+				WriteJson(w, r, sC, ApiError{errParams})
+				return
+			}
+		}
+	}
+}
+
+/*
 func errorHandler(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := f(w, r); err != nil {
@@ -152,9 +188,20 @@ func errorHandler(f apiFunc) http.HandlerFunc {
 				// converts any internal server err to 500
 				// redirects actually err to stdout for now
 				log.Println(err.Error())
-				sC := http.StatusInternalServerError
-				WriteJson(w, r, sC, ApiPlainError{http.StatusText(sC)})
+				test, ok := err.(m.ErrorResponse)
+				if ok {
+					log.Println("this is running:", test.Code)
+					switch test.Code {
+					case 1:
+						sC := http.StatusBadRequest
+						WriteJson(w, r, sC, ApiPlainError{http.StatusText(sC)})
+					default:
+						sC := http.StatusInternalServerError
+						WriteJson(w, r, sC, ApiPlainError{http.StatusText(sC)})
+					}
+				}
 			}
 		}
 	}
 }
+*/
