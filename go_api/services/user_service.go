@@ -1,27 +1,43 @@
 package services
 
 import (
+	"context"
+
 	"github.com/jaredmyers/apifun/go_api/models"
 	"github.com/jaredmyers/apifun/go_api/storage"
 )
 
 type UserService struct {
 	store storage.UserServiceStorer
+	cache storage.UserServiceCacher
 }
 
-func NewUserService(store storage.UserServiceStorer) UserServicer {
+func NewUserService(store storage.UserServiceStorer, cache storage.UserServiceCacher) UserServicer {
 	return &UserService{
 		store: store,
+		cache: cache,
 	}
 }
 
 func (uc *UserService) CreateUser(*models.User) error {
 	return nil
 }
-func (uc *UserService) GetUser(id int) (*models.User, error) {
+func (uc *UserService) GetUser(userId int) (*models.User, error) {
 
-	user, err := uc.store.GetUser(id)
+	// cache check
+	user, err := uc.cache.GetUser(context.Background(), userId)
+	if err == nil {
+		return user, nil
+	}
+
+	// if cache miss, go to database
+	user, err = uc.store.GetUser(userId)
 	if err != nil {
+		return nil, err
+	}
+
+	// store value in cache
+	if err := uc.cache.SetUser(context.Background(), user); err != nil {
 		return nil, err
 	}
 

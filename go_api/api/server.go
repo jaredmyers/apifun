@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	m "github.com/jaredmyers/apifun/go_api/models"
@@ -92,6 +93,7 @@ func (s *Server) postUser(w http.ResponseWriter, r *http.Request) error {
 func (s *Server) getUserById(w http.ResponseWriter, r *http.Request) error {
 	log.Println("FROM handleUserIdGet")
 
+	start := time.Now()
 	userSuppliedID := chi.URLParam(r, "id")
 	userID, err := strconv.Atoi(userSuppliedID)
 	if err != nil {
@@ -105,6 +107,7 @@ func (s *Server) getUserById(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	log.Println(time.Since(start))
 	return WriteJson(w, r, http.StatusOK, resp)
 }
 func (s *Server) putUserById(w http.ResponseWriter, r *http.Request) error {
@@ -157,7 +160,7 @@ func errorHandler(f apiFunc) http.HandlerFunc {
 			// differentiate between a real internal error and a bad request
 			errorResp, ok := err.(m.InternalErrResp)
 			if ok {
-				log.Println(err.Error())
+				log.Println(err.Error()) // log to stdout for now
 				sC := http.StatusInternalServerError
 				switch errorResp.Code() {
 				case m.CodeNotFound:
@@ -166,7 +169,6 @@ func errorHandler(f apiFunc) http.HandlerFunc {
 					sC = http.StatusInternalServerError
 				}
 
-				//WriteJson(w, r, sC, ApiPlainError{http.StatusText(sC)})
 				errParams := ApiErrParams{sC, http.StatusText(sC)}
 				WriteJson(w, r, sC, ApiError{errParams})
 				return

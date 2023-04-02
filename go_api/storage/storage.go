@@ -1,11 +1,20 @@
 package storage
 
-import "github.com/jaredmyers/apifun/go_api/models"
+import (
+	"context"
+
+	m "github.com/jaredmyers/apifun/go_api/models"
+)
 
 type UserServiceStorer interface {
-	CreateUser(*models.User) error
-	GetUser(int) (*models.User, error)
-	UpdateUser(*models.User) error
+	CreateUser(*m.User) error
+	GetUser(int) (*m.User, error)
+	UpdateUser(*m.User) error
 	DeleteUser(int) error
-	GetUsers() ([]*models.User, error)
+	GetUsers() ([]*m.User, error)
+}
+
+type UserServiceCacher interface {
+	GetUser(context.Context, int) (*m.User, error)
+	SetUser(context.Context, *m.User) error
 }
