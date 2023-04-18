@@ -17,7 +17,6 @@ type RedisCache struct {
 }
 
 func NewRedisCache() (*RedisCache, error) {
-	// to be implemented
 
 	var ctx = context.Background()
 
@@ -39,11 +38,10 @@ func NewRedisCache() (*RedisCache, error) {
 }
 
 func (r *RedisCache) GetUser(ctx context.Context, userId int) (*m.User, error) {
-	log.Println("redis GetUser check")
-	redisCmd := r.client.Get(ctx, strconv.Itoa(userId))
-	userBytes, err := redisCmd.Bytes()
+	log.Println("getting cache")
+	userBytes, err := r.client.Get(ctx, strconv.Itoa(userId)).Bytes()
 	if err != nil {
-		log.Println("redis GetUser err")
+		log.Println("GetUser Cache Miss")
 		return nil, err
 
 	}
@@ -57,13 +55,11 @@ func (r *RedisCache) GetUser(ctx context.Context, userId int) (*m.User, error) {
 		return nil, err
 	}
 
-	log.Println("printng user from Redis GetUser")
-	log.Println(user)
-
+	log.Println("GetUser Cache Hit")
 	return &user, nil
 }
 func (r *RedisCache) SetUser(ctx context.Context, user *m.User) error {
-	log.Println("redis SetUser hit")
+	log.Println("setting cache")
 	var b bytes.Buffer
 	if err := gob.NewEncoder(&b).Encode(user); err != nil {
 		return err

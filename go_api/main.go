@@ -27,5 +27,4 @@ func main() {
 	server := api.NewServer(*listenAddr, userService)
 	server.RegisterRoutes()
 	server.Run()
-
 }

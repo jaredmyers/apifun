@@ -36,7 +36,7 @@ func (uc *UserService) GetUser(userId int) (*models.User, error) {
 		return nil, err
 	}
 
-	// store value in cache
+	// set value in cache
 	if err := uc.cache.SetUser(context.Background(), user); err != nil {
 		return nil, err
 	}
