@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+fastapi = "*"
+flake8 = "*"
+isort = "*"
+black = "*"
+uvicorn = "*"
+pydantic = "*"
+sqlmodel = "*"
+sqlalchemy = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
