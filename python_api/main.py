@@ -3,7 +3,8 @@ from api import users
 
 app = FastAPI(
     title="apifun",
-    description="morefun",
+    description="apifun",
     )
 
-app.include_router(users.router)
+base = "/api/v1"
+app.include_router(users.router, prefix=base)
