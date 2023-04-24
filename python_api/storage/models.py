@@ -8,6 +8,8 @@ class Store(SQLModel, table=True):
     id: Optional[int] = Field(None, primary_key=True)
     name: str
 
+    foods: List["Food"] = Relationship(back_populates="stores")
+
     class Config:
         arbitrary_types_allowed = True
 
@@ -51,6 +53,8 @@ class Food(SQLModel, table=True):
     store_id: int = Field(foreign_key="stores.id")
     isle_id: str
 
+    stores: Optional["Store"] = Relationship(back_populates="foods")
+
     class Config:
         arbitrary_types_allowed = True
 
@@ -58,7 +62,7 @@ class Food(SQLModel, table=True):
 class User(SQLModel, table=True):
     __tablename__ = "users"
 
-    id: Optional[int] = Field(None, primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
     username: str
     pw_hash: str
 
