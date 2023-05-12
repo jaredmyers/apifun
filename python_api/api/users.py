@@ -6,6 +6,9 @@ from sqlmodel import select
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import selectinload, joinedload
 
+from worker.test import run_celery_test
+from fastapi.encoders import jsonable_encoder
+
 
 router = APIRouter()
 
@@ -29,10 +32,10 @@ async def get_user_by_id(session=Depends(get_async_session)):
 
 
 @router.post("/users")
-async def create_user(n: CreateUserRequest, session=Depends(get_async_session)):
+async def create_user(cU: CreateUserRequest, session=Depends(get_async_session)):
 
     # if username already exists, return error
-    statement = select(User).where(User.username == n.username)
+    statement = select(User).where(User.username == cU.username)
     user_check = await session.execute(statement)
     user_check = user_check.scalars().first()
 
@@ -40,7 +43,7 @@ async def create_user(n: CreateUserRequest, session=Depends(get_async_session)):
         return JSONResponse(status_code=422, content={"msg": "username already exists"})
 
     # Create username
-    new_user = User(username=n.username, pw_hash=n.pw_hash)
+    new_user = User(username=cU.username, pw_hash=cU.pw_hash)
     session.add(new_user)
     await session.commit()
     await session.refresh(new_user)
@@ -48,17 +51,25 @@ async def create_user(n: CreateUserRequest, session=Depends(get_async_session)):
 
 
 @router.delete("/users")
-async def delete_user(n: DeleteUserRequest, session=Depends(get_async_session)):
-    statement = select(User).filter(User.username == n.username)
+async def delete_user(dU: DeleteUserRequest, session=Depends(get_async_session)):
+    statement = select(User).filter(User.username == dU.username)
     results = await session.execute(statement)
     user = results.scalars().first()
 
     if user is None:
-        return JSONResponse(status_code=422, content={"msg": f"{n.username} does not exist"})
+        return JSONResponse(status_code=422, content={"msg": f"{dU.username} does not exist"})
 
     await session.delete(user)
     await session.commit()
     return JSONResponse(status_code=200, content={"deleted": user.username})
+
+
+@router.get("/celery/test")
+async def test_celery():
+    example = run_celery_test.delay()
+    print(example)
+
+    return JSONResponse(status_code=200, content={"celery": "yes"})
 
 
 """
