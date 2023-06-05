@@ -18,12 +18,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	cache, err := storage.NewRedisCache()
-	if err != nil {
-		log.Fatal(err)
-	}
+	//cache, err := storage.NewRedisCache()
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 
-	userService := services.NewUserService(store, cache)
+	userService := services.NewUserService(store, nil)
 	server := api.NewServer(*listenAddr, userService)
 	server.RegisterRoutes()
 	server.Run()

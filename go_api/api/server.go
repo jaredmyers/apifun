@@ -28,9 +28,9 @@ func NewServer(listenAddr string, userService services.UserServicer) *Server {
 
 // Register connects handlers to router
 func (s *Server) RegisterRoutes() {
-	s.Router.HandleFunc("/users", errorHandler(s.handleGetUsers))
 	s.Router.HandleFunc("/user", errorHandler(s.handleUser))
 	s.Router.HandleFunc("/user/{id}", errorHandler(s.handleUserById))
+	s.Router.HandleFunc("/users", errorHandler(s.handleGetUsers))
 }
 
 func (s *Server) Run() {
@@ -44,7 +44,7 @@ func (s *Server) handleUser(w http.ResponseWriter, r *http.Request) error {
 	case "GET":
 		return s.getUser(w, r)
 	case "POST":
-		return s.postUser(w, r)
+		return s.registerUser(w, r)
 	default:
 		// may return nil here instead
 		sC := http.StatusMethodNotAllowed
@@ -87,9 +87,23 @@ func (s *Server) handleGetUsers(w http.ResponseWriter, r *http.Request) error {
 func (s *Server) getUser(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
-func (s *Server) postUser(w http.ResponseWriter, r *http.Request) error {
-	return nil
+func (s *Server) registerUser(w http.ResponseWriter, r *http.Request) error {
+	log.Println("registering a user")
+
+	var req m.RegisterUserRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return err
+	}
+
+	err := s.userService.RegisterUser(&req)
+	if err != nil {
+		return err
+	}
+
+	return WriteJson(w, r, http.StatusOK, &m.RegisterUserResponse{Status: "Registration Success"})
 }
+
 func (s *Server) getUserById(w http.ResponseWriter, r *http.Request) error {
 	log.Println("FROM handleUserIdGet")
 
@@ -167,6 +181,11 @@ func errorHandler(f apiFunc) http.HandlerFunc {
 					sC = http.StatusNotFound
 				case m.CodeInternalError:
 					sC = http.StatusInternalServerError
+				case m.CodeInvalidArgument:
+					sC = http.StatusUnprocessableEntity
+					errParams := ApiErrParams{sC, err.Error()}
+					WriteJson(w, r, sC, ApiError{errParams})
+					return
 				}
 
 				errParams := ApiErrParams{sC, http.StatusText(sC)}

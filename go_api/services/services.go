@@ -1,13 +1,15 @@
 package services
 
-import "github.com/jaredmyers/apifun/go_api/models"
+import (
+	m "github.com/jaredmyers/apifun/go_api/models"
+)
 
 type UserServicer interface {
-	CreateUser(*models.User) error
-	GetUser(int) (*models.User, error)
-	UpdateUser(*models.User) error
+	RegisterUser(*m.RegisterUserRequest) error
+	GetUser(int) (*m.User, error)
+	UpdateUser(*m.User) error
 	DeleteUser(*string) error
-	GetUsers() ([]*models.User, error)
+	GetUsers() ([]*m.User, error)
 }
 
 type FoodServicer interface {

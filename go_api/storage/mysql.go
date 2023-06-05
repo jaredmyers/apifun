@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"os"
 
@@ -44,7 +45,29 @@ func NewPostgresStore() (UserServiceStorer, error) {
 	return nil, nil
 }
 
-func (s *SqlStore) CreateUser(*m.User) error {
+func (s *SqlStore) RegisterUser(req *m.RegisterUserRequest) error {
+	log.Println("registuser from storage running...")
+
+	exists, err := s.checkUserName(req)
+	if err != nil {
+		return m.InternalErrResp{Orig: err, InternalCode: m.CodeInternalError}
+	}
+
+	if exists {
+		log.Println("username exists, returning error")
+		return m.InternalErrResp{Orig: fmt.Errorf("username already exists"), InternalCode: m.CodeInvalidArgument}
+	}
+
+	log.Println("username does not exist, creating user")
+
+	query := "insert into users (user_name, pw) values (?, ?)"
+
+	res, err := s.db.Exec(query, req.Username, req.Pw)
+	if err != nil {
+		return m.InternalErrResp{Orig: err, InternalCode: m.CodeInternalError}
+	}
+	log.Println(res)
+
 	return nil
 }
 func (s *SqlStore) GetUser(id int) (*m.User, error) {
@@ -98,4 +121,20 @@ func (s *SqlStore) GetUsers() ([]*m.User, error) {
 	}
 
 	return users, nil
+}
+
+func (s *SqlStore) checkUserName(req *m.RegisterUserRequest) (bool, error) {
+
+	query := "select user_name from users where user_name=? and deleted_on is null"
+	var username string
+
+	err := s.db.QueryRow(query, req.Username).Scan(&username)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return false, m.InternalErrResp{Orig: err, InternalCode: m.CodeInternalError}
+		}
+		return false, nil
+	}
+
+	return true, nil
 }

@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/jaredmyers/apifun/go_api/models"
+	m "github.com/jaredmyers/apifun/go_api/models"
 )
 
 type MockStore struct{}
@@ -10,22 +10,22 @@ func NewMockStore() (UserServiceStorer, error) {
 	return &MockStore{}, nil
 }
 
-func (m *MockStore) CreateUser(*models.User) error {
+func (mock *MockStore) RegisterUser(*m.RegisterUserRequest) error {
 	return nil
 }
-func (m *MockStore) GetUser(id int) (*models.User, error) {
+func (mock *MockStore) GetUser(id int) (*m.User, error) {
 	return nil, nil
 }
-func (m *MockStore) UpdateUser(*models.User) error {
+func (mock *MockStore) UpdateUser(*m.User) error {
 	return nil
 }
-func (m *MockStore) DeleteUser(id int) error {
+func (mock *MockStore) DeleteUser(id int) error {
 	return nil
 }
-func (m *MockStore) GetUsers() ([]*models.User, error) {
+func (mock *MockStore) GetUsers() ([]*m.User, error) {
 	// select * from users;
 
-	users := []*models.User{
+	users := []*m.User{
 		{Id: 0, Username: "FoxTrot", Pw: "123", CreatedOn: "Date", DeletedOn: nil},
 		{Id: 1, Username: "Tango", Pw: "123", CreatedOn: "Date", DeletedOn: nil},
 		{Id: 2, Username: "Charlie", Pw: "123", CreatedOn: "Date", DeletedOn: nil},

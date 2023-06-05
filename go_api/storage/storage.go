@@ -7,7 +7,7 @@ import (
 )
 
 type UserServiceStorer interface {
-	CreateUser(*m.User) error
+	RegisterUser(*m.RegisterUserRequest) error
 	GetUser(int) (*m.User, error)
 	UpdateUser(*m.User) error
 	DeleteUser(int) error

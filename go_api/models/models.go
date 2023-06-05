@@ -9,15 +9,23 @@ type User struct {
 	DeletedOn *string `json:"deletedon,omitempty"`
 }
 
-// GetUsersResponse defines response returned back after searching/getting users
-type GetUsersResponse struct {
-	Users []*User `json:"users"`
+// requests
+type RegisterUserRequest struct {
+	Username string `json:"username"`
+	Pw       string `json:"pw"`
 }
 
 type GetUserRequest int
 type LoginRequest struct{}
-type CreateUserRequest struct{}
 
+// responses
+type GetUsersResponse struct {
+	Users []*User `json:"users"`
+}
 type ClosestBusResponse struct {
 	Id int
+}
+
+type RegisterUserResponse struct {
+	Status string `json:"status"`
 }
